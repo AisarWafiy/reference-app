@@ -1,0 +1,341 @@
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
+import { connect } from 'react-redux'
+import * as labels from 'constants/labels'
+import DatePicker from 'react-datepicker'
+
+import 'react-datepicker/dist/react-datepicker.css'
+
+import { useFormik } from 'formik'
+import * as Yup from 'yup'
+import 'ag-grid-community/dist/styles/ag-grid.css'
+import 'ag-grid-community/dist/styles/ag-theme-alpine.css'
+import 'assets/styles/customDatePickerWidth.css'
+
+import { alertActions } from 'actions/alert.actions'
+import { AgGridReact } from '@ag-grid-community/react'
+
+import { AllCommunityModules } from '@ag-grid-community/all-modules'
+
+const NACCSFileSummaryEnquiry = props => {
+  const { showAlertSuccess, showAlertError } = props
+
+  const [gridApi, setGridApi] = useState(null)
+  const [gridColumnApi, setGridColumnApi] = useState(null)
+  const [rowData, setRowData] = useState([])
+
+  const columnDefs = [
+    {
+      headerName: 'S.No',
+      field: 'serialNo',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      width: 90,
+      editable: false,
+      border: true,
+    },
+    {
+      headerName: 'Flight Number',
+      field: 'flightCode',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      width: 160,
+      editable: false,
+      border: true,
+    },
+    {
+      headerName: 'Flight Departure Date/Time',
+      field: 'flightDepartureDateTime',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      width: 160,
+      editable: false,
+      border: true,
+    },
+    {
+      headerName: 'No. of Files Generated',
+      field: 'filesGenerated',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      width: 160,
+      editable: false,
+      border: true,
+    },
+    {
+      headerName: 'No. of Files Submitted',
+      field: 'filesSubmitted',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      width: 160,
+      editable: false,
+      border: true,
+    },
+    {
+      headerName: 'No. of Files Acknowledged',
+      field: 'filesAcknowledged',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      width: 160,
+      editable: false,
+      border: true,
+    },
+  ]
+  const defaultColDef = {
+    sortable: true,
+    wrapText: true,
+  }
+  const formik = useFormik({
+    enableReinitialize: true,
+    initialValues: {
+      nonReconciled: false,
+    },
+    validationSchema: Yup.object({
+      //   departureDate: Yup.string(),
+      nonReconciled: Yup.bool(),
+      searchCodeNum: Yup.string(),
+    }),
+    onSubmit: values => {
+      console.log('submitted')
+
+      const postData = 'test'
+
+      //   axios
+      //     .get(
+      //       process.env.REACT_APP_SERVER_URI + '/api/deliveryManifest/getDeliveryManifest' + postData,
+      //     )
+      //     .then(response => {
+      //       const getData = response.data.result
+      //       console.log(response.data.result)
+      //     })
+      //     .catch(err => {
+      //       showAlertError(err.response.data.errors, 'generating NACCS Infomation')
+      //     })
+    },
+  })
+
+  useEffect(() => {
+    setRowData([
+      {
+        serialNo: 123,
+        flightCode: 'FK420',
+        flightDepartureDateTime: '2021-06-22 18:15',
+        paxFileName: 'GHD1239782737H',
+        filesGenerated: 233,
+        filesSubmitted: 2343,
+        filesAcknowledged: 546754,
+      },
+      {
+        serialNo: 123,
+        flightCode: 'FK420',
+        flightDepartureDateTime: '2021-06-22 18:15',
+        paxFileName: 'GHD1239782737H',
+        filesGenerated: 233,
+        filesSubmitted: 2343,
+        filesAcknowledged: 546754,
+      },
+    ])
+    //   axios
+    //     .get(process.env.REACT_APP_SERVER_URI + '/api/truck/getAllLoadingOrInTransitTruck')
+    //     .then(response => {
+    //       console.log(response.data.result)
+    //     })
+    //     .catch(err => {
+    //       showAlertError(err.response.data.errors, 'fetching truck numbers')
+    //     })
+  }, [])
+
+  function onGridReady(params) {
+    setGridApi(params.api)
+    setGridColumnApi(params.columnApi)
+  }
+
+  const handleExport = () => {
+    gridApi.exportDataAsExcel()
+  }
+
+  const handleDate = dates => {
+    const [start, end] = dates
+    formik.setFieldValue('startDate', start, true)
+    formik.setFieldValue('endDate', end, true)
+
+    formik.setSubmitting(false)
+  }
+
+  const handleCancel = () => {
+    console.log('cancel')
+  }
+
+  const formatDate = (dateOne, dateTwo) => {
+    if (dateOne && dateTwo) {
+      const strOne =
+        dateOne.getFullYear() +
+        '-' +
+        (dateOne.getMonth() + 1 < 10 ? '0' + dateOne.getMonth() : dateOne.getMonth()) +
+        '-' +
+        (dateOne.getDate() < 10 ? '0' + dateOne.getDate() : dateOne.getDate())
+
+      const strTwo =
+        dateTwo.getFullYear() +
+        '-' +
+        (dateTwo.getMonth() + 1 < 10 ? '0' + dateTwo.getMonth() : dateTwo.getMonth()) +
+        '-' +
+        (dateTwo.getDate() < 10 ? '0' + dateTwo.getDate() : dateTwo.getDate())
+
+      return strOne + ' - ' + strTwo
+    }
+    return null
+  }
+
+  return (
+    <div className='container bg-white'>
+      <div>
+        <h1 className='mb-4 mt-5'>NACCS File Summary Enquiry</h1>
+      </div>
+      <form onSubmit={formik.handleSubmit}>
+        <div className='row'>
+          <div className='col'>
+            <label className='form-label'>
+              {labels.LABEL_DEPARTURE_DATE_RANGE} <span className='text-danger'> *</span>
+            </label>
+          </div>
+        </div>
+        <div className='row mb-4'>
+          <div className='col-8'>
+            <div className='row'>
+              <div className='col-6'>
+                <div className='customDatePickerWidth'>
+                  <DatePicker
+                    id='startDate'
+                    name='startDate'
+                    onBlur={formik.handleBlur}
+                    className='form-control'
+                    autoComplete='off'
+                    placeholderText={labels.TEXT_DATE_FORMAT}
+                    selected={formik.values.startDate}
+                    onChange={handleDate}
+                    value={formatDate(formik.values.startDate, formik.values.endDate)}
+                    dateFormat='yyyy-MM-dd'
+                    selectsRange
+                    startDate={formik.values.startDate}
+                    endDate={formik.values.endDate}
+                    shouldCloseOnSelect={false}
+                    // minDate={new Date()}
+                    // onSelect={handleDate} //when day is clicked
+                    disabledKeyboardNavigation
+                    // disabled={disabled}
+                  />
+                </div>
+              </div>
+              <div className='col-3'>
+                <div className='form-group mt-2'>
+                  <div className='custom-control custom-checkbox'>
+                    <input
+                      type='checkbox'
+                      className='custom-control-input'
+                      id='nonReconciled'
+                      name='nonReconciled'
+                      checked={formik.values.nonReconciled}
+                      onChange={event =>
+                        formik.setFieldValue('nonReconciled', event.target.checked)
+                      }
+                    />
+                    <label className='custom-control-label' htmlFor='nonReconciled'>
+                      {labels.LABEL_NON_RECONCILED}
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className='col'>
+                <button
+                  type='submit'
+                  className='btn btn-primary'
+                  disabled={!(formik.isValid && formik.dirty)}
+                  // disabled={!(formik.isValid && formik.dirty) || formik.isSubmitting}
+                >
+                  {labels.BUTTON_GO}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className='col text-right'>
+            <div className='input-group'>
+              <input
+                id='searchCodeNum'
+                name='searchCodeNum'
+                type='text'
+                placeholder='Search Code or Number'
+                // onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.searchCodeNum}
+                className='form-control border-end-0'
+                // disabled={formik.isSubmitting}
+              />
+              <span className='input-group-append'>
+                <button
+                  style={{ border: '1px solid #e5e5e5' }}
+                  className='btn bg-transparent border-start-0 form-control'
+                  type='button'
+                  onClick={() => console.log('clicked')}
+                >
+                  <i className='fa fa-search'></i>
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div className='mt-5'>
+        <label className='form-label'>
+          {labels.TITLE_RESULTS}
+          {/* <span className='text-danger'> *</span> */}
+        </label>
+        <div
+          id='myGrid'
+          className='ag-theme-alpine'
+          style={{
+            width: '100%',
+            height: 500,
+          }}
+        >
+          <AgGridReact
+            columnDefs={columnDefs}
+            rowData={rowData}
+            animateRows={true}
+            rowHeight={40}
+            headerHeight={50}
+            defaultColDef={defaultColDef}
+            pagination={true}
+            paginationPageSize={10}
+            context={props.context}
+            modules={AllCommunityModules}
+            onGridReady={onGridReady}
+            rowSelection={'multiple'}
+            editType='fullRow'
+            suppressClickEdit={true}
+            undoRedoCellEditing={true}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// const mapStateToProps = state => ({
+// terminalNo: state.deliveryManifestReducer.terminalNo,
+// })
+
+const mapDispatchToProps = dispatch => ({
+  showAlertSuccess: (message, status) => dispatch(alertActions.success(message, status)),
+  showAlertError: (message, status) => dispatch(alertActions.error(message, status)),
+})
+
+export default connect(null, mapDispatchToProps)(NACCSFileSummaryEnquiry)

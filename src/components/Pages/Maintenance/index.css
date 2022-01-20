@@ -1,0 +1,7 @@
+.maintenance { text-align: center; padding: 10%; font: 20px Helvetica, sans-serif; color: #333; }
+#h1 { font-size: 48px; margin: 0; }
+article { display: block; text-align: left; max-width: 650px; margin: 0 auto; }
+#p2 { color: #dc8100 }
+@media only screen and (max-width : 480px) {
+    #h1 { font-size: 40px; }
+}

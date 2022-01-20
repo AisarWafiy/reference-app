@@ -1,0 +1,32 @@
+html {
+	height: 100vh;
+}
+
+*{
+   box-sizing: border-box;
+}
+
+body {
+    overflow-x: hidden !important;
+  width: 100vw;
+ height: 100vh;
+  margin: 0% ;
+  padding:0% ;
+  
+}
+
+.App{
+    margin: 0% !important;
+    padding: 0% !important;
+    overflow: hidden;
+    height: 100vh;
+}
+
+/* #okta-sign-in {
+ 
+
+} */
+
+/* #okta-signin-submit{
+  background-color: rgb(44, 122, 96);
+} */

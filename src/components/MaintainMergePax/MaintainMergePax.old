@@ -1,0 +1,592 @@
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { connect } from 'react-redux'
+import axios from 'axios'
+
+import * as labels from 'constants/labels'
+import DatePicker from 'react-datepicker'
+// import { mergePaxActions } from 'actions/mergePax.actions'
+
+import 'react-datepicker/dist/react-datepicker.css'
+
+import 'ag-grid-community/dist/styles/ag-grid.css'
+import 'ag-grid-community/dist/styles/ag-theme-alpine.css'
+import { alertActions } from 'actions/alert.actions'
+import { AgGridColumn, AgGridReact } from '@ag-grid-community/react'
+import { Dropdown } from 'components/UI/Input'
+import { AllModules } from '@ag-grid-enterprise/all-modules'
+import { setCarrierCode, setDepartureDate, setRowData } from 'actions/action-merge-pax'
+
+const NumberEditor = forwardRef((props, ref) => {
+  const [value, setValue] = useState(parseInt(props.value))
+  const refInput = useRef(null)
+
+  useEffect(() => {
+    // focus on the input
+    setTimeout(() => refInput.current.focus())
+  }, [])
+
+  /* Component Editor Lifecycle methods */
+  useImperativeHandle(ref, () => {
+    return {
+      // the final value to send to the grid, on completion of editing
+      getValue() {
+        // this simple editor doubles any value entered into the input
+        return value
+      },
+
+      // Gets called once before editing starts, to give editor a chance to
+      // cancel the editing before it even starts.
+      isCancelBeforeStart() {
+        return false
+      },
+      // isCancelAfterEnd() {
+      //   // our editor will reject any value greater than 1000
+      //   return value > 999
+      // },
+      // Gets called once when editing is finished (eg if enter is pressed).
+      // If you return true, then the result of the edit will be ignored.
+    }
+  })
+
+  return (
+    <input
+      type='number'
+      ref={refInput}
+      value={value}
+      onChange={event => setValue(event.target.value)}
+      style={{ width: '100%' }}
+    />
+  )
+})
+
+// const actionCellRenderer = params => {
+//   let divElement = document.createElement('div')
+
+//   let editingCells = params.api.getEditingCells()
+
+//   // checks if the rowIndex matches in at least one of the editing cells
+//   let isCurrentRowEditing = editingCells.some(cell => {
+//     return cell.rowIndex === params.node.rowIndex
+//   })
+
+//   if (isCurrentRowEditing) {
+//     console.log('pppppppp', isCurrentRowEditing)
+//     divElement.innerHTML = `
+// <button data-action="save"  class="save-option"> Save  </button>
+// <button  data-action="cancel" class="cancel-option"> Cancel </button>
+// `
+//   } else {
+//     console.log('pppppppp', isCurrentRowEditing)
+//     divElement.innerHTML = `
+// <button data-action="edit" class="edit-option"> Edit </button>
+
+// `
+//   }
+
+//   return divElement
+// }
+
+const MaintainMergePax = props => {
+  const {
+    showAlertError,
+    showAlertSuccess,
+    setDepartureDate,
+    setCarrierCode,
+    setRowData,
+    departureDate,
+    carrierCode,
+    rowData,
+  } = props
+
+  const [gridApi, setGridApi] = useState(null)
+  const [gridColumnApi, setGridColumnApi] = useState(null)
+
+  const [disableMerge, setDisableMerge] = useState(true)
+
+  const [carrierCodeList, setCarrierCodeList] = useState([])
+
+  useEffect(() => {
+    axios
+      .get(process.env.REACT_APP_SERVER_URI + '/api/carrier/carriercode')
+      .then(response => {
+        const dropdownList = []
+
+        response.data.result.forEach(function (element) {
+          dropdownList.push({ key: element, value: element })
+        })
+        setCarrierCodeList(dropdownList)
+      })
+      .catch(err => {
+        showAlertError(err.response.data.errors, 'fetching carrier codes')
+      })
+
+    const localMergePaxData = JSON.parse(localStorage.getItem('mergePaxData'))
+
+    if (localMergePaxData) {
+      const dateSplit = localMergePaxData.departureDate.split('-')
+      const date = new Date(
+        dateSplit[0],
+        parseInt(dateSplit[1], 10) - 1,
+        parseInt(dateSplit[2], 10),
+      )
+      setDepartureDate(date)
+      setCarrierCode({ key: localMergePaxData.carrierCode, value: localMergePaxData.carrierCode })
+      console.log(localMergePaxData)
+      handleFindDuplicate(false, localMergePaxData.departureDate, localMergePaxData.carrierCode)
+    }
+
+    localStorage.removeItem('mergePaxData')
+  }, [])
+
+  const selectionChanged = () => {
+    let selectedNodes = gridApi.getSelectedNodes()
+
+    if (selectedNodes.length >= 2) {
+      setDisableMerge(false)
+    } else {
+      setDisableMerge(true)
+    }
+  }
+
+  const columnDefs = [
+    {
+      editable: false,
+
+      checkboxSelection: true,
+      width: 40,
+      lockPosition: true,
+    },
+
+    {
+      headerName: 'Pax Number',
+      field: 'paxMaster.paxNo',
+      sortable: true,
+      filter: true,
+
+      sizeColumnsToFit: true,
+      lockPosition: true,
+
+      width: 125,
+      editable: true,
+      border: true,
+    },
+    {
+      headerName: 'First Name',
+      field: 'paxMaster.paxFirstName',
+      sortable: true,
+      sizeColumnsToFit: true,
+      filter: true,
+      lockPosition: true,
+
+      width: 125,
+
+      editable: true,
+      border: true,
+    },
+    {
+      headerName: 'Last Name',
+      field: 'paxMaster.paxLastName',
+      sortable: true,
+      sizeColumnsToFit: true,
+
+      filter: true,
+      lockPosition: true,
+
+      width: 130,
+      editable: true,
+      border: true,
+    },
+    {
+      headerName: 'Address Line 1',
+      field: 'paxMaster.paxAddresses.0.addressLine1',
+      sortable: true,
+      sizeColumnsToFit: true,
+      filter: true,
+
+      lockPosition: true,
+
+      width: 200,
+      editable: true,
+      border: true,
+    },
+    {
+      headerName: 'Address line 2 ',
+      field: 'paxMaster.paxAddresses.0.addressLine2',
+      sortable: true,
+      sizeColumnsToFit: true,
+      filter: true,
+      lockPosition: true,
+
+      width: 200,
+
+      editable: true,
+
+      border: true,
+    },
+    {
+      headerName: 'City',
+      field: 'paxMaster.paxAddresses.0.addressCity',
+
+      sizeColumnsToFit: true,
+      sortable: true,
+
+      lockPosition: true,
+
+      width: 190,
+      editable: true,
+      border: true,
+    },
+
+    {
+      headerName: 'Postal Code',
+      wrapText: true,
+      field: 'paxMaster.paxAddresses.0.postCode',
+      lockPosition: true,
+      sortable: true,
+      filter: true,
+
+      width: 115,
+      cellEditor: 'numberEditor',
+      editable: false,
+    },
+    {
+      headerName: 'Transaction Type',
+      field: 'salesTransType',
+      lockPosition: true,
+      sortable: true,
+      filter: true,
+      width: 130,
+
+      sizeColumnsToFit: true,
+      editable: false,
+    },
+    {
+      headerName: 'Transaction Number',
+      field: 'salesTransNumber',
+      sortable: true,
+      filter: true,
+      sizeColumnsToFit: true,
+      lockPosition: true,
+
+      width: 140,
+      editable: false,
+      border: true,
+    },
+    {
+      headerName: ' Transaction Amount',
+      field: 'salesTransNetAmount',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+
+      sizeColumnsToFit: true,
+      width: 100,
+      editable: false,
+      border: true,
+    },
+
+    {
+      headerName: 'Cashier Id',
+      field: 'salesAccountId',
+      sortable: true,
+      sizeColumnsToFit: true,
+      filter: true,
+      lockPosition: true,
+
+      width: 120,
+      editable: false,
+      border: true,
+    },
+
+    {
+      headerName: 'Transaction Date ',
+      field: 'salesRecordDate',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      sizeColumnsToFit: true,
+
+      width: 130,
+      editable: false,
+      border: true,
+    },
+    {
+      headerName: 'Transaction Time ',
+      field: 'salesRecordTime',
+      sortable: true,
+      filter: true,
+      lockPosition: true,
+      sizeColumnsToFit: true,
+      cellRenderer: stringFormatter,
+      width: 130,
+      editable: false,
+      border: true,
+    },
+  ]
+  function stringFormatter(params) {
+    var date = params.value
+    var firstChar = date.slice(0, 5)
+    return firstChar
+  }
+
+  const defaultColDef = {
+    sortable: true,
+    wrapText: true,
+    resizable: true,
+    headerComponentParams: {
+      template:
+        '<div class="ag-cell-label-container" role="presentation">' +
+        '  <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"></span>' +
+        '  <div ref="eLabel" class="ag-header-cell-label" role="presentation">' +
+        '    <span ref="eSortOrder" class="ag-header-icon ag-sort-order"></span>' +
+        '    <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon"></span>' +
+        '    <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon"></span>' +
+        '    <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon"></span>' +
+        '    <span ref="eText" class="ag-header-cell-text" role="columnheader" style="white-space: normal;"></span>' +
+        '    <span ref="eFilter" class="ag-header-icon ag-filter-icon"></span>' +
+        '  </div>' +
+        '</div>',
+    },
+  }
+
+  function onGridReady(params) {
+    setGridApi(params.api)
+    setGridColumnApi(params.columnApi)
+  }
+
+  const onRowEditingStarted = params => {
+    params.api.refreshCells({
+      columns: ['action'],
+      rowNodes: [params.node],
+      force: true,
+    })
+  }
+  const onRowEditingStopped = params => {
+    gridApi.undoCellEditing()
+    params.api.refreshCells({
+      columns: ['action'],
+      rowNodes: [params.node],
+      force: true,
+    })
+  }
+
+  // const onCellClicked = params => {
+  //   console.log('helllloooo')
+  //   // Handle click event for action cells
+  //   if (params.column.colId === 'action' && params.event.target.dataset.action) {
+  //     let action = params.event.target.dataset.action
+
+  //     if (action === 'edit') {
+  //       params.api.startEditingCell({
+  //         rowIndex: params.node.rowIndex,
+  //         // gets the first columnKey
+  //         colKey: params.columnApi.getDisplayedCenterColumns()[0].colId,
+  //       })
+  //     }
+
+  //     if (action === 'save') {
+  //       params.api.stopEditing(false)
+  //     }
+
+  //     if (action === 'cancel') {
+  //       params.api.stopEditing(true)
+  //     }
+  //   }
+  // }
+
+  const getSelectedRowData = () => {
+    let selectedNodes = gridApi.getSelectedNodes()
+    let selectedData = selectedNodes.map(node => node.data.paxMaster)
+
+    let a = selectedData.map(node => node.paxNo)
+    let b = new Set(a)
+    if (selectedData.length === b.size) {
+      axios
+        .post(process.env.REACT_APP_SERVER_URI + '/api/pax/mergePax', selectedData)
+        .then(response => {
+          showAlertSuccess(response.data.message, 'merge pax')
+          // refresh the rowData
+          handleFindDuplicate(false)
+        })
+        .catch(err => {
+          showAlertError(err.response.data.errors, 'merge pax')
+        })
+    } else {
+      showAlertError('Same Pax Number cannot be merged', labels.mergePax)
+    }
+  }
+
+  const handleClear = () => {
+    setRowData([])
+    setCarrierCode(null)
+    setDepartureDate(null)
+  }
+
+  const handleFindDuplicate = (showMessage = true, formattedDate, formattedCarrierCode) => {
+    let formatDate
+    let carrCode
+
+    if (!formattedDate) {
+      const year = departureDate.getFullYear()
+      const month = departureDate.getMonth() + 1
+      const date = departureDate.getDate()
+
+      formatDate =
+        year + '-' + (month < 10 ? '0' + month : month) + '-' + (date < 10 ? '0' + date : date)
+    } else {
+      formatDate = formattedDate
+      console.log(formatDate)
+    }
+
+    if (!formattedCarrierCode) {
+      carrCode = carrierCode.value.replace(/\s/g, '+')
+    } else {
+      carrCode = formattedCarrierCode.replace(/\s/g, '+')
+    }
+
+    axios
+      .get(
+        process.env.REACT_APP_SERVER_URI +
+          '/api/pax/getDuplicate?carrierCode=' +
+          carrCode +
+          '&departureDate=' +
+          formatDate,
+      )
+      .then(response => {
+        showMessage && showAlertSuccess(response.data.message, 'fetching duplicate infomation')
+
+        setRowData(response.data.result)
+      })
+      .catch(err => {
+        showMessage && showAlertError(err.response.data.errors, 'fetching duplicate infomation')
+      })
+  }
+
+  return (
+    <div className='container bg-white'>
+      <div>
+        <h1 className='mb-4 mt-5'>Merge Pax</h1>
+      </div>
+
+      <div className='mt-3'>
+        <div className='row'>
+          <div className='col-3'>
+            <label className='form-label'>Carrier Code/Number</label>
+            <span className='astrick'>*</span>
+            <br />
+            <Dropdown
+              closeMenuOnSelect={true}
+              className='form-control mb-4 '
+              value={carrierCode}
+              onChange={selectedOption => setCarrierCode(selectedOption)}
+              options={carrierCodeList}
+              optionLabel='value'
+              optionValue='value'
+            />
+          </div>
+          <div className='col-3 ml-4'>
+            <label className='form-label'>Departure Date</label>
+            <span className='astrick'>*</span>
+            <br />
+            <DatePicker
+              dateFormat='yyyy-MM-dd'
+              placeholderText='YYYY-MM-DD'
+              className='form-control'
+              selected={departureDate}
+              popperPlacement='bottom'
+              popperModifiers={{
+                flip: {
+                  behavior: ['bottom'],
+                },
+                preventOverflow: {
+                  enabled: false,
+                },
+                hide: {
+                  enabled: false,
+                },
+              }}
+              onChange={selectedOption => setDepartureDate(selectedOption)}
+            />
+          </div>
+        </div>
+      </div>
+      <div className='mt-4 row  '>
+        <div className=' col-12 '>
+          <button type='button' className=' btn btn-outline-secondary mr-3' onClick={handleClear}>
+            Clear
+          </button>
+          <button
+            type='submit'
+            className='btn btn-primary mr-3'
+            disabled={disableMerge}
+            onClick={getSelectedRowData}
+          >
+            Merge Pax
+          </button>
+
+          <button
+            type='button'
+            className=' btn btn-outline-secondary'
+            onClick={handleFindDuplicate}
+            disabled={!(carrierCode && departureDate)}
+          >
+            Find Duplicate
+          </button>
+        </div>
+      </div>
+      <div className='mt-5'>
+        <h2>Results</h2>
+      </div>
+      <div
+        id='myGrid'
+        className='ag-theme-alpine'
+        style={{
+          width: '100%',
+          height: 500,
+        }}
+      >
+        <AgGridReact
+          columnDefs={columnDefs}
+          rowData={rowData}
+          animateRows={true}
+          rowHeight={40}
+          headerHeight={55}
+          defaultColDef={defaultColDef}
+          pagination={true}
+          paginationPageSize={10}
+          context={props.context}
+          modules={AllModules}
+          onGridReady={onGridReady}
+          rowSelection={'multiple'}
+          onRowEditingStopped={onRowEditingStopped}
+          onRowEditingStarted={onRowEditingStarted}
+          // onCellClicked={onCellClicked}
+          frameworkComponents={{
+            numberEditor: NumberEditor,
+          }}
+          onSelectionChanged={selectionChanged}
+          editType='fullRow'
+          suppressClickEdit={true}
+          undoRedoCellEditing={true}
+        />
+      </div>
+    </div>
+  )
+}
+
+const mapStateToProps = state => ({
+  carrierCode: state.mergePaxReducer.carrierCode,
+  departureDate: state.mergePaxReducer.departureDate,
+  rowData: state.mergePaxReducer.rowData,
+})
+
+const mapDispatchToProps = dispatch => ({
+  showAlertSuccess: (message, status) => dispatch(alertActions.success(message, status)),
+  showAlertError: (message, status) => dispatch(alertActions.error(message, status)),
+
+  setCarrierCode: data => dispatch(setCarrierCode(data)),
+  setDepartureDate: data => dispatch(setDepartureDate(data)),
+  setRowData: data => dispatch(setRowData(data)),
+})
+
+export default connect(mapStateToProps, mapDispatchToProps)(MaintainMergePax)

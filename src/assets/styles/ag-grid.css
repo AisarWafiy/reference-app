@@ -1,0 +1,61 @@
+
+.ag-header{
+    background: #F8F8F8;
+box-sizing: border-box;
+text-align: center;
+box-shadow: inset 0px -1px 0px #E7E7ED;
+}
+.ag-header, .ag-header-row, .ag-header-viewport, .ag-header-container{
+    border: none !important;
+    font-size: 10px;
+}
+
+
+ .ag-header-row{
+position: static;
+left: 0px;
+top: 0px;
+ }
+
+.ag-header-cell-text{
+font-style: normal;
+font-weight: 550;
+
+font-size: 12px;
+line-height: 150%;
+display: flex;
+
+align-items: center;
+color: #222222;
+}
+
+
+.ag-cell{
+
+    font-size: 12px !important;
+    font-weight:500;
+
+  
+}
+
+.ag-root-wrapper{
+    border: 1px solid #E5E5E5 !important;
+    border-radius: 4px;
+    overflow: visible;  /* changed this to let popup show fully */
+}
+
+.ag-body-viewport{
+    border: none !important;
+}
+.ag-center-cols-container{
+    border: none !important;
+}
+.ag-center-cols-viewport{
+    border: none !important;
+}
+
+/* .ag-react-container{
+    width: 100%;
+} */
+
+

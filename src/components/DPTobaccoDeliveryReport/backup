@@ -1,0 +1,317 @@
+import React, { useEffect, useState } from 'react'
+import { connect } from 'react-redux'
+import { Row, Col } from 'react-bootstrap'
+
+import DatePicker from 'react-datepicker'
+import { ToolTip } from 'components/AgGridCustomComponents/Editors'
+import { useTranslation } from 'react-i18next'
+import 'react-datepicker/dist/react-datepicker.css'
+import { MasterDetailModule } from '@ag-grid-enterprise/master-detail'
+import { MenuModule } from '@ag-grid-enterprise/menu'
+import { ColumnsToolPanelModule } from '@ag-grid-enterprise/column-tool-panel'
+import { ClipboardModule } from '@ag-grid-enterprise/clipboard'
+import { ExcelExportModule } from '@ag-grid-enterprise/excel-export'
+import { AgGridReact } from 'ag-grid-react'
+
+import 'ag-grid-community/dist/styles/ag-grid.css'
+import 'ag-grid-community/dist/styles/ag-theme-alpine.css'
+
+import { dpTobaccoReportActions } from 'actions/dpTobaccoReport.actions'
+import { AllModules } from '@ag-grid-enterprise/all-modules'
+import Moment from 'moment'
+
+function DPTobaccoDeliveryReport(props) {
+  const { NoTitle } = props
+  const [gridApi, setGridApi] = useState(null)
+  const [gridColumnApi, setGridColumnApi] = useState(null)
+
+  // const [gridColumnApi1, setGridColumnApi1] = useState(null)
+  const [rowData, setRowData] = useState([])
+
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
+
+  const [showData, setShowData] = useState(false)
+
+  const [disableGo, setDisableGo] = useState(true)
+  const { t } = useTranslation()
+
+  const excelStyles = [
+    {
+      id: 'cartonNumber',
+      numberFormat: {
+        format: '000000',
+      },
+    },
+    {
+      id: 'bagNumber',
+      numberFormat: {
+        format: '000000000000',
+      },
+    },
+    {
+      id: 'paxNumber',
+      numberFormat: {
+        format: '0000000000',
+      },
+    },
+  ]
+
+  useEffect(() => {
+    if (props.getDPTobaccoDeliveryReportData) {
+      setRowData(props.getDPTobaccoDeliveryReportData.result)
+    } else {
+      setRowData([])
+    }
+  }, [props.getDPTobaccoDeliveryReportData])
+
+  const columnDefs1 = [
+    {
+      headerName: t('Flight_Number_label'),
+      field: 'flightNumber',
+      sortable: true,
+      filter: true,
+      tooltipField: 'flightNumber',
+      cellRenderer: 'agGroupCellRenderer',
+      lockPosition: true,
+
+      editable: false,
+    },
+    {
+      headerName: t('Total_No._of_Bags_label'),
+      field: 'bagCount',
+      sortable: true,
+      tooltipField: 'bagCount',
+      filter: true,
+      lockPosition: true,
+
+      editable: false,
+    },
+  ]
+  const defaultColDef = {
+    sortable: true,
+    wrapText: true,
+    headerComponentParams: {
+      template:
+        '<div class="ag-cell-label-container" role="presentation">' +
+        '  <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"></span>' +
+        '  <div ref="eLabel" class="ag-header-cell-label" role="presentation">' +
+        '    <span ref="eSortOrder" class="ag-header-icon ag-sort-order"></span>' +
+        '    <span ref="eSortAsc" class="ag-header-icon ag-sort-ascending-icon"></span>' +
+        '    <span ref="eSortDesc" class="ag-header-icon ag-sort-descending-icon"></span>' +
+        '    <span ref="eSortNone" class="ag-header-icon ag-sort-none-icon"></span>' +
+        '    <span ref="eText" class="ag-header-cell-text" role="columnheader" style="white-space: normal;"></span>' +
+        '    <span ref="eFilter" class="ag-header-icon ag-filter-icon"></span>' +
+        '  </div>' +
+        '</div>',
+    },
+    tooltipComponent: 'customTooltip',
+  }
+
+  const formatDate = (dateOne, dateTwo) => {
+    if (dateOne && dateTwo) {
+      const strOne = Moment(dateOne).format('YYYY-MM-DD')
+
+      const strTwo = Moment(dateTwo).format('YYYY-MM-DD')
+
+      return strOne + ' - ' + strTwo
+    }
+    return null
+  }
+  const handleGo = object => {
+    let data = {}
+    data.dateFrom = Moment(startDate).format('YYYY-MM-DD')
+    data.dateTo = Moment(endDate).format('YYYY-MM-DD')
+
+    props.getDPTobaccoDeliveryReport(data)
+    setShowData(true)
+  }
+  function onGridReady(params) {
+    setGridApi(params.api)
+    setGridColumnApi(params.columnApi)
+  }
+
+  useEffect(() => {
+    if (startDate !== null) {
+      setDisableGo(false)
+    } else {
+      setDisableGo(true)
+    }
+  }, [startDate])
+  useEffect(() => {
+    if (startDate === null) {
+      setShowData(false)
+    }
+  }, [startDate])
+  const onBtExport = () => {
+    gridApi.exportDataAsExcel()
+  }
+
+  const handleDate = dates => {
+    const [start, end] = dates
+    setStartDate(start)
+    setEndDate(end)
+  }
+  return (
+    <div className='container bg-white'>
+      {NoTitle ? null : (
+        <div>
+          <h1 className='mb-4 mt-5'>{t('Duty_Paid_Tobacco_Delivery_Report_label')}</h1>
+        </div>
+      )}
+      <div className='mt-3'>
+        <Row>
+          <Col xs='3'>
+            <label className='form-label'> {t('Date_Range_label')}</label>
+            <span className='astrick'>*</span>
+            <br />
+
+            <DatePicker
+              id='startDate'
+              name='startDate'
+              className='form-control'
+              autoComplete='off'
+              placeholderText={t('TEXT_DATE_FORMAT_label')}
+              selected={startDate}
+              onChange={handleDate}
+              dateFormat='yyyy-MM-dd'
+              selectsRange
+              startDate={startDate}
+              endDate={endDate}
+              shouldCloseOnSelect={false}
+              value={formatDate(startDate, endDate)}
+              // minDate={new Date()}
+              // onSelect={handleDate} //when day is clicked
+              disabledKeyboardNavigation
+              // disabled={disabled}
+            />
+          </Col>
+
+          <Col>
+            <br />
+            <button
+              type='submit'
+              onClick={handleGo}
+              className='btn btn-primary mr-3 mt-1'
+              disabled={disableGo}
+            >
+              {t('Go_label')}
+            </button>
+          </Col>
+        </Row>
+      </div>
+      {showData ? (
+        <div>
+          <div>
+            <div>
+              <Row>
+                <Col>
+                  <h2 className='mt-4'>{t('Status_Totals_label')}</h2>
+                </Col>
+
+                <Col className='text-right mr-4'>
+                  <br />{' '}
+                  <button
+                    onClick={() => onBtExport()}
+                    className=' btn btn-outline-secondary '
+                    disabled={!(rowData.length > 0)}
+                  >
+                    {t('Export_To_Excel_label')}
+                  </button>
+                </Col>
+              </Row>
+            </div>
+            <div
+              id='myGrid'
+              className='ag-theme-alpine mt-3'
+              style={{
+                width: '100%',
+                height: 600,
+              }}
+            >
+              <AgGridReact
+                columnDefs={columnDefs1}
+                rowData={rowData}
+                animateRows={true}
+                rowHeight={40}
+                headerHeight={50}
+                defaultColDef={defaultColDef}
+                pagination={true}
+                paginationPageSize={10}
+                context={props.context}
+                modules={[
+                  AllModules,
+                  MasterDetailModule,
+                  MenuModule,
+                  ColumnsToolPanelModule,
+                  ClipboardModule,
+                  ExcelExportModule,
+                ]}
+                frameworkComponents={{
+                  customTooltip: ToolTip,
+                }}
+                masterDetail={true}
+                detailCellRendererParams={{
+                  detailGridOptions: {
+                    columnDefs: [
+                      {
+                        headerName: 'bag',
+                        field: 'bagNo',
+                        tooltipField: 'bagNo',
+                        cellRenderer: 'agGroupCellRenderer',
+                      },
+
+                      {
+                        headerName: t('Truck_Number_label'),
+                        field: 'truckNo',
+                        tooltipField: 'truckNo',
+                      },
+                    ],
+                    defaultColDef: { flex: 1 },
+                    masterDetail: true,
+                    detailRowHeight: 240,
+                    detailCellRendererParams: {
+                      detailGridOptions: {
+                        columnDefs: [
+                          {
+                            headerName: 'bag',
+                            field: 'skuNumber',
+                            // tooltipField: 'bagNo',
+                          },
+                        ],
+                        defaultColDef: { flex: 1 },
+                      },
+                      getDetailRowData: function (params) {
+                        params.successCallback(params.data.skuDetails)
+                      },
+                    },
+                  },
+
+                  getDetailRowData: function (params) {
+                    params.successCallback(params.data.bagDetails)
+                  },
+                }}
+                onGridReady={onGridReady}
+                editType='fullRow'
+                suppressClickEdit={true}
+                undoRedoCellEditing={true}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function mapState(state) {
+  return {
+    getDPTobaccoDeliveryReportData: state.getDPTobaccoDeliveryReport.getData,
+  }
+}
+
+const actionCreators = {
+  getDPTobaccoDeliveryReport: dpTobaccoReportActions.getDPTobaccoDeliveryReport,
+}
+
+export default connect(mapState, actionCreators)(DPTobaccoDeliveryReport)

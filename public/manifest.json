@@ -1,0 +1,11 @@
+{
+  "short_name": "BCconnect",
+  "name": "BCconnect application",
+  "icons": [
+
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

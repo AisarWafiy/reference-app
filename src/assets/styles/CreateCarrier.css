@@ -1,0 +1,32 @@
+.box1{   
+background: #FFFFFF;
+box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.12);
+border-radius: 15px;
+margin-left: 14px;
+padding-top: 20px;
+padding-bottom: 20px;
+}
+
+.main-heading{
+font-style: normal;
+font-weight: 500;
+font-size: 30px;
+}
+
+.heading{   
+font-weight: 550;
+font-size: 16px;
+color: #B13C27;
+
+}
+
+.astrick{
+      color: red;
+    padding-left:5px
+}
+
+label{
+    font-size: 12px;
+     line-height: 18px;
+      font-weight: 550
+}
